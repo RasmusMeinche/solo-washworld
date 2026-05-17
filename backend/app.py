@@ -52,8 +52,14 @@ def sign_up():
         if "company_exception user_first_name" in str(ex):
             return "First name must be between {x.USER_FIRST_NAME_MIN} and {x.USER_FIRST_NAME_MAX} characters", 400
             
-        if "company_exception last_name" in str(ex):
+        if "company_exception user_last_name" in str(ex):
             return "Last name must be between {x.USER_LAST_NAME_MIN} and {x.USER_LAST_NAME_MAX} characters", 400
+
+        if "company_exception user_email" in str(ex):
+            return "Invalid Email", 400
+
+        if "company_exception user_password" in str(ex):
+            return "At least {x.USER_PASSWORD_MIN} characters", 400
 
         return str(ex), 500
     finally:
@@ -86,4 +92,10 @@ def verify_account(key):
         return str(ex), 500
     finally:
         if "cursor" in locals(): cursor.close()
-        if "db" in locals(): db.close()  
+        if "db" in locals(): db.close()
+
+
+##############################
+@app.get("/forgot_password")
+def show_forgot_password():
+    return render_template("/forgot_password.html")
