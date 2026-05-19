@@ -99,3 +99,17 @@ def verify_account(key):
 @app.get("/forgot_password")
 def show_forgot_password():
     return render_template("/forgot_password.html")
+
+##############################
+@app.post("/forgot-password")
+def forgot_password():
+    try:
+        user_email = x.validate_user_email(request.form.get("user_email", ""))
+        db, cursor = x.db()
+        q = 
+    except Exception as ex:
+        pass
+    finally:
+        if "cursor" in locals(): cursor.close()
+        if "db" in locals(): db.close()
+
