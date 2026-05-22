@@ -50,16 +50,16 @@ def sign_up():
     except Exception as ex:
         ic(ex)
         if "company_exception user_first_name" in str(ex):
-            return "First name must be between {x.USER_FIRST_NAME_MIN} and {x.USER_FIRST_NAME_MAX} characters", 400
+            return f"First name must be between {x.USER_FIRST_NAME_MIN} and {x.USER_FIRST_NAME_MAX} characters", 400
             
         if "company_exception user_last_name" in str(ex):
-            return "Last name must be between {x.USER_LAST_NAME_MIN} and {x.USER_LAST_NAME_MAX} characters", 400
+            return f"Last name must be between {x.USER_LAST_NAME_MIN} and {x.USER_LAST_NAME_MAX} characters", 400
 
         if "company_exception user_email" in str(ex):
             return "Invalid Email", 400
 
         if "company_exception user_password" in str(ex):
-            return "At least {x.USER_PASSWORD_MIN} characters", 400
+            return f"At least {x.USER_PASSWORD_MIN} characters", 400
 
         return str(ex), 500
     finally:
@@ -106,10 +106,76 @@ def forgot_password():
     try:
         user_email = x.validate_user_email(request.form.get("user_email", ""))
         db, cursor = x.db()
-        q = 
+        q = "SELECT user_reset_password_key AS 'reset_key' FROM users WHERE user_email = %s"
+        cursor.execute(q, (user_email,))
+        row = cursor.fetchone()
+
+        if not row:
+            return "Email not found", 400
+
+        forgot_password_html = render_template("/forgot_password_email.html", user_reset_password_key=row["reset_key"])
+
+        x.send_email("Reset your password", forgot_password_html)
+
+        return "Check your email"
+
     except Exception as ex:
-        pass
+        ic(ex)
+
+        if "company_exception email" in str(ex):
+            return "invalid email", 400
     finally:
         if "cursor" in locals(): cursor.close()
         if "db" in locals(): db.close()
 
+##############################
+@app.get("/reset-password/<reset_key>")
+def show_reset_password(reset_key):
+    try:
+        reset_key = x.validate_uuid4_paranoia(reset_key)
+        db, cursor = x.db()
+
+        q = """SELECT user_reset_password_key FROM users WHERE user_reset_password_key = %s"""
+        cursor.execute(q, (reset_key,))
+        row = cursor.fetchone()
+
+        if not row:
+            return "ups...", 400
+
+        return render_template("/page_reset_password.html")
+
+    except Exception as ex: 
+        ic(ex)
+        if "company_exception uuid4 invalid" in str(ex):
+            return "Invalid key", 400
+
+        return str(ex), 500
+    finally:
+        if "cursor" in locals(): cursor.close()
+        if "db" in locals(): db.close()
+
+##############################
+@app.post("/reset-password")
+def reset_password():
+    try:
+        user_password = x.validate_user_password()
+        confirm_user_password = x.validate_user_password()
+
+        if user_password != confirm_user_password:
+            return "Tjek om adgangskoderne er ens", 400
+
+        reset_key = x.validate_user_password( request.form.get("reset_key", ""))
+
+        return "Agangskode ændret, vær venlig at logge ind"
+    except Exception as ex:
+
+        if "company_exception user_password" in str(ex):
+            return f"Password {x.USER_PASSWORD_MIN} to {x.USER_PASSWORD_MAX} characters", 400
+
+        if "company_exception paranoia" in str(ex):
+            return "Invalid key", 400
+
+        return str(ex), 500
+    finally: 
+        if "cursor" in locals(): cursor.close()
+        if "db" in locals(): db.close()
